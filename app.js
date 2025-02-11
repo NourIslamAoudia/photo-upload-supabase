@@ -10,7 +10,8 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Configuration de Multer (utilisation de memoryStorage)
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ dest: '/tmp/' });
+
 
 // Initialisation d'Express
 const app = express();
