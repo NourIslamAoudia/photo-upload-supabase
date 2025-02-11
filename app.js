@@ -10,16 +10,12 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Configuration de Multer (utilisation de memoryStorage)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 Mo
-});
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Initialisation d'Express
 const app = express();
-const port = process.env.PORT || 3000;
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+const port = 3000;
+app.use(express.json());
 app.use(cors());
 
 // Route pour uploader une photo
