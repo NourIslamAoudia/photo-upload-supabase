@@ -46,12 +46,9 @@ app.post('/upload', upload.single('photo'), async (req, res) => {
     }
 
     // Générer l'URL publique
-    const { data: urlData } = await supabase
-      .storage
-      .from('photos')
-      .getPublicUrl(fileName);
+    const dataa  = supabase.storage.from('photos').getPublicUrl(fileName);
+    const photoUrl = dataa.publicUrl;
 
-    const photoUrl = urlData.publicUrl;
 
     // Enregistrer dans la base de données
     const { data: photoData, error: photoError } = await supabase
