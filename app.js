@@ -2,8 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
-const fs = require('fs');
-const path = require('path');
 const cors = require('cors');
 
 // Configuration de Supabase
@@ -11,17 +9,10 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Configuration de Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  },
-});
-const upload = multer({ storage });
+// Configuration de Multer (utilisation de memoryStorage)
+const upload = multer({ storage: multer.memoryStorage() });
 
+// Initialisation d'Express
 const app = express();
 const port = 3000;
 app.use(express.json());
@@ -35,18 +26,16 @@ app.post('/upload', upload.single('photo'), async (req, res) => {
       return res.status(400).json({ error: 'Aucun fichier uploadé.' });
     }
 
-    const filePath = path.join(__dirname, file.path);
-    const fileStream = fs.createReadStream(filePath);
+    // Générer un nom de fichier unique
     const fileName = `public/${Date.now()}-${file.originalname}`;
 
     // Upload du fichier vers Supabase Storage
     const { data, error } = await supabase.storage
-      .from('photos')
-      .upload(fileName, fileStream, {
+      .from('photos') // Nom du bucket
+      .upload(fileName, file.buffer, {
         cacheControl: '3600',
         upsert: false,
-        contentType: file.mimetype,
-        duplex: "half"
+        contentType: file.mimetype, // Définir le type MIME du fichier
       });
 
     if (error) {
@@ -64,16 +53,13 @@ app.post('/upload', upload.single('photo'), async (req, res) => {
 
     // Enregistrer dans la base de données
     const { data: photoData, error: photoError } = await supabase
-      .from('photos')
+      .from('photos') // Nom de la table
       .insert([{ url: photoUrl }]);
 
     if (photoError) {
       console.error("Erreur lors de l'insertion en BDD :", photoError);
       return res.status(500).json({ error: "Erreur lors de l'insertion dans la base de données" });
     }
-
-    // Nettoyage du fichier temporaire
-    fs.unlinkSync(filePath);
 
     res.status(200).json({ message: 'Photo uploadée avec succès !', url: photoUrl });
   } catch (error) {
@@ -101,7 +87,7 @@ app.get('/photos', async (req, res) => {
   }
 });
 
-
+// Démarrer le serveur
 app.listen(port, () => {
   console.log(`Serveur démarré sur http://localhost:${port}`);
 });
