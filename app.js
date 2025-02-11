@@ -1,23 +1,25 @@
-const fs = require('fs');
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
-require('dotenv').config();
+const fs = require('fs'); // Importer FileSystem
 
 // Configuration de Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Configuration de Multer (stockage en /tmp/)
+// Configuration de Multer (Stockage temporaire dans /tmp/)
 const upload = multer({ dest: '/tmp/' });
 
+// Initialisation d'Express
 const app = express();
 const port = 3000;
 app.use(express.json());
 app.use(cors());
 
+// Route pour uploader une photo
 app.post('/upload', upload.single('photo'), async (req, res) => {
   try {
     const file = req.file;
@@ -48,26 +50,17 @@ app.post('/upload', upload.single('photo'), async (req, res) => {
 
     // Générer l'URL publique
     const publicUrl = supabase.storage.from('photos').getPublicUrl(fileName);
-    
-    if (!publicUrl) {
-      console.error("Erreur : L'URL publique est NULL !");
-      return res.status(500).json({ error: "Erreur lors de la génération de l'URL publique." });
-    }
 
-    console.log("URL générée :", publicUrl);
 
     // Enregistrer dans la base de données
     const { data: photoData, error: photoError } = await supabase
-      .from('photos')
-      .insert([{ url: publicUrl }])
-      .select('*'); // Permet de voir ce qui est retourné
+      .from('photos') // Nom de la table
+      .insert([{ url: publicUrl }]);
 
     if (photoError) {
       console.error("Erreur lors de l'insertion en BDD :", photoError);
       return res.status(500).json({ error: "Erreur lors de l'insertion dans la base de données" });
     }
-
-    console.log("Insertion réussie :", photoData);
 
     // Supprimer le fichier temporaire après l'upload
     fs.unlinkSync(filePath);
@@ -79,6 +72,26 @@ app.post('/upload', upload.single('photo'), async (req, res) => {
   }
 });
 
+// Route pour récupérer toutes les photos
+app.get('/photos', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('photos') // Table "photos"
+      .select('*');
+
+    if (error) {
+      console.error("Erreur lors de la récupération des photos :", error);
+      return res.status(500).json({ error: "Erreur lors de la récupération des photos." });
+    }
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des photos :", error);
+    res.status(500).json({ error: "Erreur interne du serveur." });
+  }
+});
+
+// Démarrer le serveur
 app.listen(port, () => {
   console.log(`Serveur démarré sur http://localhost:${port}`);
 });
