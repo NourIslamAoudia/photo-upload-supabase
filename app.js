@@ -32,12 +32,13 @@ app.post('/upload', upload.single('photo'), async (req, res) => {
 
     // Upload du fichier vers Supabase Storage
     const { data, error } = await supabase.storage
-      .from('photos') // Nom du bucket
-      .upload(fileName, file.buffer, {
+      .from('photos')
+      .upload(fileName, new Blob([file.buffer]), { 
+        contentType: file.mimetype,
         cacheControl: '3600',
-        upsert: false,
-        contentType: file.mimetype, // Définir le type MIME du fichier
+        upsert: false
       });
+
 
     if (error) {
       console.error("Erreur lors de l'upload Supabase :", error);
